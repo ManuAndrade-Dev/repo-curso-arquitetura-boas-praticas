@@ -2,8 +2,6 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
-from app.core.database import SessionLocal
-from app.models.group import Group
 from app.schemas.group import GroupCreate, GroupRead
 from app.services import group_service
 
@@ -11,28 +9,13 @@ router = APIRouter(prefix="/groups", tags=["groups"])
 
 
 @router.get("/", response_model=list[GroupRead])
-def list_groups():
-    db: Session = SessionLocal()
-    try:
-        return db.query(Group).offset(0).limit(100).all()
-    finally:
-        db.close()
+def list_groups(db: Session = Depends(get_db)):
+    return group_service.list_groups(db)
 
 
 @router.post("/", response_model=GroupRead, status_code=status.HTTP_201_CREATED)
-def create_group(group_in: GroupCreate):
-    db: Session = SessionLocal()
-    try:
-        group = Group(
-            name=group_in.name,
-            description=group_in.description,
-        )
-        db.add(group)
-        db.commit()
-        db.refresh(group)
-        return group
-    finally:
-        db.close()
+def create_group(group_in: GroupCreate, db: Session = Depends(get_db)):
+    return group_service.create_group(db, group_in)
 
 
 @router.get("/{group_id}", response_model=GroupRead)
